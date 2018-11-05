@@ -252,6 +252,17 @@ void serial_initialize(void)
 	serial_assign(default_serial_console()->name);
 }
 
+// minli-port-Serial
+// 
+#ifdef CONFIG_MPU2MCU_UART
+void serial_initialize_mcu(void)
+{
+	mxc_serial_initialize();
+
+	serial_assign(mcu_serial_console()->name);
+}
+#endif
+
 static int serial_stub_start(struct stdio_dev *sdev)
 {
 	struct serial_device *dev = sdev->priv;
@@ -417,6 +428,14 @@ static struct serial_device *get_current(void)
  */
 int serial_init(void)
 {
+// minli-port-Serial
+// Initlalize MCU uart port
+#ifdef CONFIG_MPU2MCU_UART
+	struct serial_device *dev;
+
+	dev = mcu_serial_console();
+	dev->start();
+#endif
 	gd->flags |= GD_FLG_SERIAL_READY;
 	return get_current()->start();
 }

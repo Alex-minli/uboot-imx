@@ -197,6 +197,9 @@
 #include <splash.h>
 #endif
 
+// minli-debug_video
+#include <mmc.h>
+
 /*
  * Cursor definition:
  * CONFIG_CONSOLE_CURSOR:  Uses a timer function (see drivers/input/i8042.c)
@@ -1832,7 +1835,96 @@ static void plot_logo_or_black(void *screen, int width, int x, int y,	\
 
 static void logo_plot(void *screen, int width, int x, int y)
 {
+// minli-debug_video
+// Add option
+#ifndef CONFIG_LOGO_IN_EMMC
 	plot_logo_or_black(screen, width, x, y, 0);
+#else
+// minli-debug_video
+// read logo from emmc
+	unsigned int size = VIDEO_VISIBLE_COLS * VIDEO_VISIBLE_ROWS * (DISPLAY_BPP / 8);
+	unsigned char * pData;
+	unsigned int start, count;
+	int i, bmpReady = 0;
+	int mmc_dev = mmc_get_env_devno();
+	struct mmc *mmc = find_mmc_device(mmc_dev);
+
+	pData = (unsigned char *)screen;
+
+// minli-debug_video
+	debug_video("%s: \n", __func__);
+	debug_video("\t DISPLAY Paraments: WIDTH = %d, HEIGHT = %d, BPP = %d\n", VIDEO_VISIBLE_COLS, VIDEO_VISIBLE_ROWS, DISPLAY_BPP);
+	debug_video("\t pData(0x%p) size = %d\n", pData, size);
+
+	if (mmc)	{
+		if (mmc_init(mmc) == 0) {
+			start = ALIGN(UBOOT_LOGO_BMP_ADDR, mmc->read_bl_len) / mmc->read_bl_len;
+			count = ALIGN(size, mmc->read_bl_len) / mmc->read_bl_len;
+// minli-debug_video
+			debug_video("\t Read BMP data from eMMC. Start = 0x%x, length = 0x%x to frame buffer(0x%p)\n", start, count, pData);
+			mmc->block_dev.block_read(mmc_dev, start, count, pData);
+			bmpReady = 1;
+		}
+	}
+
+// minli-debug_video
+// Force to not ready in debug mode
+#ifdef DEBUG
+	bmpReady = 0;
+#endif
+	debug_video("\t is BMP ready? %s\n", (bmpReady == 0? "No" : "Yes"));
+
+	if (bmpReady == 0) {
+		// Fill RGB frame buffer
+// minli-debug_video
+		debug_video("\t BMP isn't ready,Fill RGB frame buffer with color bar.\n");
+
+		// Red
+// minli-debug_video
+		debug_video("\t\t Fill Red bar: Start = %d, Counter = %d\n", 0, VIDEO_VISIBLE_COLS * VIDEO_VISIBLE_ROWS * (DISPLAY_BPP / 8) / 3);
+
+		for (i = 0; i < (VIDEO_VISIBLE_COLS * VIDEO_VISIBLE_ROWS * (DISPLAY_BPP / 8) / 3); i += (DISPLAY_BPP / 8)) {
+#if (DISPLAY_BPP == 16)
+			pData[i + 0] = 0x00;
+			pData[i + 1] = 0xF8;
+#else
+			pData[i + 0] = 0x00;
+			pData[i + 1] = 0x00;
+			pData[i + 2] = 0xFF;
+#endif
+		}
+
+		// Green
+// minli-debug_video
+		debug_video("\t\t Fill Green bar: Start = %d, Counter = %d\n", i, (VIDEO_VISIBLE_COLS * VIDEO_VISIBLE_ROWS * (DISPLAY_BPP / 8) / 3) * 2);
+
+		for (; i < (VIDEO_VISIBLE_COLS * VIDEO_VISIBLE_ROWS * (DISPLAY_BPP / 8) / 3) * 2; i += (DISPLAY_BPP / 8)) {
+#if (DISPLAY_BPP == 16)
+			pData[i + 0] = 0xE0;
+			pData[i + 1] = 0x07;
+#else
+			pData[i + 0] = 0x00;
+			pData[i + 1] = 0xFF;
+			pData[i + 2] = 0x00;
+#endif
+		}
+
+		// Blue
+// minli-debug_video
+		debug_video("\t\t Fill Blue bar: Start = %d, Counter = %d\n", i, VIDEO_VISIBLE_COLS * VIDEO_VISIBLE_ROWS * (DISPLAY_BPP / 8));
+
+		for (; i < VIDEO_VISIBLE_COLS * VIDEO_VISIBLE_ROWS * (DISPLAY_BPP / 8); i += (DISPLAY_BPP / 8)) {
+#if (DISPLAY_BPP == 16)
+			pData[i + 0] = 0x1F;
+			pData[i + 1] = 0x00;
+#else
+			pData[i + 0] = 0xFF;
+			pData[i + 1] = 0x00;
+			pData[i + 2] = 0x00;
+#endif
+		}
+	}
+#endif
 }
 
 static void logo_black(void)
@@ -1861,6 +1953,8 @@ U_BOOT_CMD(
 
 static void plot_logo_or_black(void *screen, int width, int x, int y, int black)
 {
+// minli-debug_video
+	debug("%s: Plot %s\n", __func__, black ? "Blak" : "Logo");
 
 	int xcount, i;
 	int skip = (width - VIDEO_LOGO_WIDTH) * VIDEO_PIXEL_SIZE;
@@ -1879,9 +1973,16 @@ static void plot_logo_or_black(void *screen, int width, int x, int y, int black)
 		y = max(0, (int)(VIDEO_VISIBLE_ROWS - VIDEO_LOGO_HEIGHT) / 2);
 	else if (y < 0)
 		y = max(0, (int)(VIDEO_VISIBLE_ROWS - VIDEO_LOGO_HEIGHT + y + 1));
+
+// minli-debug_video
+	debug("\t Plot in Screen center.\n");
 #endif /* CONFIG_SPLASH_SCREEN_ALIGN */
 
 	dest = (unsigned char *)screen + (y * width  + x) * VIDEO_PIXEL_SIZE;
+
+// minli-debug_video
+	debug("\t plot from (%d,%d), Screen width = %d, VIDEO_PIXEL_SIZE = %d\n", x, y, width, VIDEO_PIXEL_SIZE);
+	debug("\t Frambuffer screen start = 0x%p, dest = 0x%p\n", screen, dest);
 
 #ifdef CONFIG_VIDEO_BMP_LOGO
 	source = bmp_logo_bitmap;
@@ -1896,6 +1997,18 @@ static void plot_logo_or_black(void *screen, int width, int x, int y, int black)
 		logo_green[i] = (bmp_logo_palette[i] & 0x00f0);
 		logo_blue[i] = (bmp_logo_palette[i] & 0x000f) << 4;
 	}
+// minli-debug_video
+	debug("\t bmp logo palette(%d):\n", VIDEO_LOGO_COLORS);
+	for (i = 0; i < VIDEO_LOGO_COLORS; i++) {
+		debug("\t%s0x0%X%X%X,%s", 
+                      ((i%8) == 0) ? "\t" : "  ", 
+                      (logo_red[i]   >> 4) & 0x0F, 
+                      (logo_green[i] >> 4) & 0x0F, 
+                      (logo_blue[i]  >> 4) & 0x0F, 
+                      ((i%8) == 7) ? "\n" : ""
+                );
+	}
+	debug("\n");
 #else
 	source = linux_logo;
 	logo_red = linux_logo_red;
@@ -1911,6 +2024,12 @@ static void plot_logo_or_black(void *screen, int width, int x, int y, int black)
 		}
 	}
 
+// minli-debug_video
+	debug("\t Frambuffer Address = 0x%p, start source = 0x%p\n", dest, source);
+	debug("\t skip(Skip to next line start address) = %d\n", skip);
+	debug("\t VIDEO_LOGO_LUT_OFFSET = %d\n", VIDEO_LOGO_LUT_OFFSET);
+	debug("\t VIDEO_DATA_FORMAT = %d, VIDEO_PIXEL_SIZE = %d\n", VIDEO_DATA_FORMAT, VIDEO_PIXEL_SIZE);
+	
 	while (ycount--) {
 #if defined(VIDEO_FB_16BPP_PIXEL_SWAP)
 		int xpos = x;
@@ -1987,6 +2106,9 @@ static void plot_logo_or_black(void *screen, int width, int x, int y, int black)
 
 static void *video_logo(void)
 {
+// minli-debug_video
+	debug("%s:\n", __func__);
+
 	char info[128];
 	int space, len;
 	__maybe_unused int y_off = 0;
@@ -2009,6 +2131,11 @@ static void *video_logo(void)
 		}
 	}
 #endif /* CONFIG_SPLASH_SCREEN */
+
+// minli-debug_video
+	debug("\t video_fb_address = 0x%p\n", video_fb_address);
+	debug("\t VIDEO_COLS = %d\n", VIDEO_COLS);
+	debug("\t video_logo_xpos = %d, video_logo_ypos = %d\n", video_logo_xpos, video_logo_ypos);
 
 	logo_plot(video_fb_address, VIDEO_COLS,
 		  video_logo_xpos, video_logo_ypos);
@@ -2037,6 +2164,8 @@ static void *video_logo(void)
 		return 0;
 
 	sprintf(info, " %s", version_string);
+// minli-debug_video
+	debug("\tversion_string = %s\n", info);
 
 	space = (VIDEO_COLS - VIDEO_INFO_X) / VIDEO_FONT_WIDTH;
 	len = strlen(info);
@@ -2072,8 +2201,14 @@ static void *video_logo(void)
 			((video_logo_height -
 			  VIDEO_FONT_HEIGHT) / VIDEO_FONT_HEIGHT);
 
+// minli-debug_video
+		debug("\t video_logo_height = %d, VIDEO_FONT_HEIGHT = %d\n", video_logo_height, VIDEO_FONT_HEIGHT);
+
 		for (i = 1; i < n; i++) {
 			video_get_info_str(i, info);
+// minli-debug_video
+			debug("info = %s, len = %d, space = %d\n", info, strlen(info), space);
+
 			if (!*info)
 				continue;
 
@@ -2143,6 +2278,14 @@ void video_clear(void)
 			  bgx			/* fill color */
 	);
 #else
+// minli-debug_video
+	debug("%s:\n", __func__);
+	debug("\t Fill Frambuffer with bg_color(0x%08x)\n", bgx);
+	debug("\t video_fb_address = 0x%08x\n", video_fb_address);
+	debug("\t size of pixel (%d) = VIDEO_VISIBLE_ROWS(%d) * VIDEO_LINE_LEN(%d) / %d\n", \
+	          (VIDEO_VISIBLE_ROWS * VIDEO_LINE_LEN) / sizeof(int),
+		  VIDEO_VISIBLE_ROWS, VIDEO_LINE_LEN, sizeof(int));
+
 	memsetl(video_fb_address,
 		(VIDEO_VISIBLE_ROWS * VIDEO_LINE_LEN) / sizeof(int), bgx);
 #endif
@@ -2150,11 +2293,23 @@ void video_clear(void)
 
 static int video_init(void)
 {
+// minli-debug_video
+	debug("%s:\n", __func__);
+
 	unsigned char color8;
 
 	pGD = video_hw_init();
 	if (pGD == NULL)
 		return -1;
+
+// minli-debug_video
+	debug("%s: Start logo process.\n", __func__);
+	debug("\t VIDEO_FB_ADRS = 0x%08x\n", VIDEO_FB_ADRS);
+	debug("\t VIDEO_SIZE = %d\n", VIDEO_SIZE);
+	debug("\t\t VIDEO_COLS = %d\n", VIDEO_COLS);
+	debug("\t\t VIDEO_ROWS = %d\n", VIDEO_ROWS);
+	debug("\t\t VIDEO_PIXEL_SIZE = %d\n", VIDEO_PIXEL_SIZE);
+	debug("\t VIDEO_DATA_FORMAT = 0x%08x\n", VIDEO_DATA_FORMAT);
 
 	video_fb_address = (void *) VIDEO_FB_ADRS;
 #ifdef CONFIG_VIDEO_HW_CURSOR
@@ -2230,6 +2385,9 @@ static int video_init(void)
 			(CONSOLE_BG_COL << 16) |
 			(CONSOLE_BG_COL <<  8) |
 			 CONSOLE_BG_COL;
+// minli-debug_video
+		debug("\t CONSOLE_FG_COL = 0x%x, fgx = 0x%08x\n", CONSOLE_FG_COL, fgx);
+		debug("\t CONSOLE_BG_COL = 0x%x, bgx = 0x%08x\n", CONSOLE_BG_COL, bgx);
 		break;
 	}
 	eorx = fgx ^ bgx;
@@ -2266,6 +2424,9 @@ __weak int board_video_skip(void)
 
 int drv_video_init(void)
 {
+// minli-debug_video
+	debug("%s:\n", __func__);
+
 	int skip_dev_init;
 	struct stdio_dev console_dev;
 

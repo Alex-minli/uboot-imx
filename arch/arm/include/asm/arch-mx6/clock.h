@@ -40,6 +40,20 @@ enum mxc_clock {
 	MXC_SATA_CLK,
 	MXC_NFC_CLK,
 	MXC_I2C_CLK,
+/*
+ * Add S11 logo config
+ * minli-debug-logo
+ */
+#ifdef CONFIG_UBOOT_LOGO_ENABLE
+	MXC_IPU1_LVDS_DI0_CLK,
+	MXC_IPU1_LVDS_DI1_CLK,
+	MXC_IPU2_LVDS_DI0_CLK,
+	MXC_IPU2_LVDS_DI1_CLK,
+	MXC_IPU1_DI0_CLK,
+	MXC_IPU1_DI1_CLK,
+	MXC_IPU2_DI0_CLK,
+	MXC_IPU2_DI1_CLK,
+#endif
 };
 
 enum enet_freq {

@@ -218,10 +218,113 @@ static struct serial_device mxc_serial_drv = {
 	.tstc	= mxc_serial_tstc,
 };
 
+/* minli-port-Serial
+ * define Uart process for MCU
+ *
+ */
+#ifdef CONFIG_MPU2MCU_UART
+#undef  UART_PHYS
+#define UART_PHYS	CONFIG_MPU2MCUC_UART_BASE
+
+static void mxc_serial_mcu_setbrg(void)
+{
+	u32 clk = imx_get_uartclk();
+
+	__REG(UART_PHYS + UFCR) = 4 << 7; /* divide input clock by 2 */
+	__REG(UART_PHYS + UBIR) = 0xf;
+	__REG(UART_PHYS + UBMR) = clk / (2 * CONFIG_MPU2MCU_BAUDRATE);
+
+}
+
+static int mxc_serial_mcu_getc(void)
+{
+	while (__REG(UART_PHYS + UTS) & UTS_RXEMPTY)
+		WATCHDOG_RESET();
+	return (__REG(UART_PHYS + URXD) & URXD_RX_DATA); /* mask out status from upper word */
+}
+
+static void mxc_serial_mcu_putc(const char c)
+{
+	__REG(UART_PHYS + UTXD) = c;
+
+	/* wait for transmitter to be ready */
+	while (!(__REG(UART_PHYS + UTS) & UTS_TXEMPTY))
+		WATCHDOG_RESET();
+
+	/* If \n, also do \r */
+	if (c == '\n')
+		serial_putc ('\r');
+}
+
+/*
+ * Test whether a character is in the RX buffer
+ */
+static int mxc_serial_mcu_tstc(void)
+{
+	/* If receive fifo is empty, return false */
+	if (__REG(UART_PHYS + UTS) & UTS_RXEMPTY)
+		return 0;
+	return 1;
+}
+
+/*
+ * Initialise the serial port with the given baudrate. The settings
+ * are always 8 data bits, no parity, 1 stop bit, no start bits.
+ *
+ */
+static int mxc_serial_mcu_init(void)
+{
+	__REG(UART_PHYS + UCR1) = 0x0;
+	__REG(UART_PHYS + UCR2) = 0x0;
+
+	while (!(__REG(UART_PHYS + UCR2) & UCR2_SRST));
+
+	__REG(UART_PHYS + UCR3) = 0x0704 | UCR3_ADNIMP;
+	__REG(UART_PHYS + UCR4) = 0x8000;
+	__REG(UART_PHYS + UESC) = 0x002b;
+	__REG(UART_PHYS + UTIM) = 0x0;
+
+	__REG(UART_PHYS + UTS) = 0x0;
+
+	mxc_serial_mcu_setbrg();
+
+	__REG(UART_PHYS + UCR2) = UCR2_WS | UCR2_IRTS | UCR2_RXEN | UCR2_TXEN | UCR2_SRST;
+
+	__REG(UART_PHYS + UCR1) = UCR1_UARTEN;
+
+	return 0;
+}
+
+static struct serial_device mxc_serial_mcu_drv = {
+	.name	= "mxc_serial_mcu",
+	.start	= mxc_serial_mcu_init,
+	.stop	= NULL,
+	.setbrg	= mxc_serial_mcu_setbrg,
+	.putc	= mxc_serial_mcu_putc,
+	.puts	= default_serial_puts,
+	.getc	= mxc_serial_mcu_getc,
+	.tstc	= mxc_serial_mcu_tstc,
+};
+#endif
+// minli-port-Serial
+
 void mxc_serial_initialize(void)
 {
 	serial_register(&mxc_serial_drv);
+
+// minli-port-Serial
+#ifdef CONFIG_MPU2MCU_UART
+	serial_register(&mxc_serial_mcu_drv);
+#endif
 }
+
+// minli-port-Serial
+#ifdef CONFIG_MPU2MCU_UART
+__weak struct serial_device *mcu_serial_console(void)
+{
+	return &mxc_serial_mcu_drv;
+}
+#endif
 
 __weak struct serial_device *default_serial_console(void)
 {

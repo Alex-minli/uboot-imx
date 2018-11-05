@@ -11,8 +11,6 @@
  * SPDX-License-Identifier:	GPL-2.0+
  */
 
-/* #define DEBUG */
-
 #include <common.h>
 #include <linux/types.h>
 #include <asm/errno.h>
@@ -59,6 +57,9 @@ extern unsigned char g_dc_di_assignment[];
 
 void ipu_dmfc_init(int dmfc_type, int first)
 {
+// minli-debug_video
+	debug("%s: %s initialize. dmfc_type = %d\n" , __func__, first ? "First":"Not First", dmfc_type);
+
 	u32 dmfc_wr_chan, dmfc_dp_chan;
 
 	if (first) {
@@ -103,6 +104,16 @@ void ipu_dmfc_init(int dmfc_type, int first)
 		dmfc_size_24 = 0;
 		dmfc_size_27 = 128 * 4;
 		dmfc_size_23 = 256 * 4;
+
+// CH28: Watermark clear = 111, set = 101, Enable
+//	 Brust size = 8, FIFO size = 128, Segment 0
+// CH27: Watermark clear = 111, set = 101, Enable
+//	 Brust size = 8, FIFO size = 128, Segment 6
+// CH23: Watermark clear = 111, set = 101, Enable
+//	 Brust size = 8, FIFO size = 256, Segment 4
+		debug_video("\t CH28( 1): Watermark clear = 111, set = 101, Enable\n\t       Brust size = 8, FIFO size = 128, Segment 0\n");
+		debug_video("\t CH27(5F): Watermark clear = 111, set = 101, Enable\n\t       Brust size = 8, FIFO size = 128, Segment 6\n");
+		debug_video("\t CH23(5B): Watermark clear = 111, set = 101, Enable\n\t       Brust size = 8, FIFO size = 256, Segment 2\n");
 	} else if (dmfc_type == DMFC_HIGH_RESOLUTION_ONLY_DP) {
 		/* 5B - segement 0~3;
 		 * 5F - segement 4~7;
@@ -130,12 +141,31 @@ void ipu_dmfc_init(int dmfc_type, int first)
 		dmfc_size_24 = 0;
 		dmfc_size_27 = 128 * 4;
 		dmfc_size_23 = 128 * 4;
+
+// CH28: Watermark clear = 111, set = 101, Enable
+//	 Brust size = 8, FIFO size = 128, Segment 0
+// CH27: Watermark clear = 111, set = 101, Enable
+//	 Brust size = 8, FIFO size = 128, Segment 6
+// CH23: Watermark clear = 111, set = 101, Enable
+//	 Brust size = 8, FIFO size = 256, Segment 4
+		debug_video("\t CH28( 1): Watermark clear = 111, set = 101, Enable\n\t       Brust size = 8, FIFO size = 128, Segment 0\n");
+		debug_video("\t CH27(5F): Watermark clear = 111, set = 101, Enable\n\t       Brust size = 8, FIFO size = 128, Segment 6\n");
+		debug_video("\t CH23(5B): Watermark clear = 111, set = 101, Enable\n\t       Brust size = 8, FIFO size = 128, Segment 4\n");
 	}
 	__raw_writel(dmfc_wr_chan, DMFC_WR_CHAN);
 	__raw_writel(0x202020F6, DMFC_WR_CHAN_DEF);
 	__raw_writel(dmfc_dp_chan, DMFC_DP_CHAN);
 	/* Enable chan 5 watermark set at 5 bursts and clear at 7 bursts */
 	__raw_writel(0x2020F6F6, DMFC_DP_CHAN_DEF);
+
+// minli-debug_video
+	debug_video("\t DMFC Write Channel Initialize:\n");
+	debug_video("\t write DMFC_WR_CHAN(0x%08x) = 0x%08x\n",   DMFC_WR_CHAN,     dmfc_wr_chan);
+	debug_video("\t write DMFC_WR_CHAN_DEF(0x%08x) = 0x%08x\n\n", DMFC_WR_CHAN_DEF, 0x202020F6);
+
+	debug_video("\t DMFC Display Processor Channel Initialize:\n");
+	debug_video("\t write DMFC_DP_CHAN(0x%08x) = 0x%08x\n",       DMFC_DP_CHAN, 	dmfc_dp_chan);
+	debug_video("\t write DMFC_DP_CHAN_DEF(0x%08x) = 0x%08x\n\n", DMFC_DP_CHAN_DEF, 0x2020F6F6);
 }
 
 void ipu_dmfc_set_wait4eot(int dma_chan, int width)
@@ -143,6 +173,8 @@ void ipu_dmfc_set_wait4eot(int dma_chan, int width)
 	u32 dmfc_gen1 = __raw_readl(DMFC_GENERAL1);
 
 	if (width >= HIGH_RESOLUTION_WIDTH) {
+// minli-debug_video
+	debug_video("%s: Resolution is great, switch to HIGH_RESOLUTION mode.and reinitialize DMFC Write Channel\n", __func__);
 		if (dma_chan == 23)
 			ipu_dmfc_init(DMFC_HIGH_RESOLUTION_DP, 0);
 		else if (dma_chan == 28)
@@ -211,6 +243,27 @@ static void ipu_di_sync_config(int di, int wave_gen,
 				int cnt_polarity_trigger_src,
 				int cnt_up, int cnt_down)
 {
+// minli-debug_video
+// define source clock name
+static const char *src_name[] = {
+		"DI_SYNC_NONE",
+		"DI_SYNC_CLK",
+		"DI_SYNC_INT_HSYNC",
+		"DI_SYNC_HSYNC",
+		"DI_SYNC_VSYNC",
+		" ",
+		"DI_SYNC_DE",
+	};
+
+	debug("%s:\n", __func__);
+	debug("\t di = %d,\t wave_gen = %d\n", di, wave_gen);
+	debug("\t run_count = %d,\t run_src = %s\n", run_count, src_name[run_src+1]);
+	debug("\t offset_count = %d,\t offset_src = %s\n", offset_count, src_name[offset_src+1]);
+	debug("\t repeat_count = %d,\t cnt_clr_src = %s\n", repeat_count, src_name[cnt_clr_src+1]);
+	debug("\t cnt_polarity_gen_en = %d\n", cnt_polarity_gen_en);
+	debug("\t cnt_polarity_clr_src = %s,\t cnt_polarity_trigger_src = %s\n", src_name[cnt_polarity_clr_src+1], src_name[cnt_polarity_trigger_src+1]);
+	debug("\t cnt_up = %d,\t cnt_down = %d\n", cnt_up, cnt_down);
+
 	u32 reg;
 
 	if ((run_count >= 0x1000) || (offset_count >= 0x1000) ||
@@ -239,6 +292,9 @@ static void ipu_di_sync_config(int di, int wave_gen,
 
 static void ipu_dc_map_config(int map, int byte_num, int offset, int mask)
 {
+// minli-debug_video
+	debug("\t %s: Set Byte%d OFFSET & MASK of map pointer #%d\n", __func__, byte_num, map);
+
 	int ptr = map * 3 + byte_num;
 	u32 reg;
 
@@ -255,6 +311,9 @@ static void ipu_dc_map_config(int map, int byte_num, int offset, int mask)
 
 static void ipu_dc_map_clear(int map)
 {
+// minli-debug_video
+	debug("\t %s: Clear map pointer #%d\n", __func__, map);
+
 	u32 reg = __raw_readl(DC_MAP_CONF_PTR(map));
 	__raw_writel(reg & ~(0xFFFF << (16 * (map & 0x1))),
 		     DC_MAP_CONF_PTR(map));
@@ -263,6 +322,9 @@ static void ipu_dc_map_clear(int map)
 static void ipu_dc_write_tmpl(int word, u32 opcode, u32 operand, int map,
 			       int wave, int glue, int sync)
 {
+// minli-debug_video
+	debug("\t %s: template microcode word #%d\n", __func__, word);
+
 	u32 reg;
 	int stop = 1;
 
@@ -748,31 +810,39 @@ void ipu_dp_dc_disable(ipu_channel_t channel, unsigned char swap)
 
 void ipu_init_dc_mappings(void)
 {
+// minli-debug_video
+	debug("%s:", __func__);
+
 	/* IPU_PIX_FMT_RGB24 */
+	debug("\n\t Map pointer 0 for RGB24.\n");
 	ipu_dc_map_clear(0);
 	ipu_dc_map_config(0, 0, 7, 0xFF);
 	ipu_dc_map_config(0, 1, 15, 0xFF);
 	ipu_dc_map_config(0, 2, 23, 0xFF);
 
 	/* IPU_PIX_FMT_RGB666 */
+	debug("\n\t Map pointer 0 for RGB666.\n");
 	ipu_dc_map_clear(1);
 	ipu_dc_map_config(1, 0, 5, 0xFC);
 	ipu_dc_map_config(1, 1, 11, 0xFC);
 	ipu_dc_map_config(1, 2, 17, 0xFC);
 
 	/* IPU_PIX_FMT_YUV444 */
+	debug("\n\t Map pointer 0 for YUV444.\n");
 	ipu_dc_map_clear(2);
 	ipu_dc_map_config(2, 0, 15, 0xFF);
 	ipu_dc_map_config(2, 1, 23, 0xFF);
 	ipu_dc_map_config(2, 2, 7, 0xFF);
 
 	/* IPU_PIX_FMT_RGB565 */
+	debug("\n\t Map pointer 0 for RGB565.\n");
 	ipu_dc_map_clear(3);
 	ipu_dc_map_config(3, 0, 4, 0xF8);
 	ipu_dc_map_config(3, 1, 10, 0xFC);
 	ipu_dc_map_config(3, 2, 15, 0xF8);
 
 	/* IPU_PIX_FMT_LVDS666 */
+	debug("\n\t Map pointer 0 for LVDS666.\n");
 	ipu_dc_map_clear(4);
 	ipu_dc_map_config(4, 0, 5, 0xFC);
 	ipu_dc_map_config(4, 1, 13, 0xFC);
@@ -781,6 +851,9 @@ void ipu_init_dc_mappings(void)
 
 static int ipu_pixfmt_to_map(uint32_t fmt)
 {
+// minli-debug_video
+	debug("%s:fmt = %c%c%c%c\n", __func__, (char)fmt, (char)(fmt >> 8), (char)(fmt >> 16), (char)(fmt >> 24));
+
 	switch (fmt) {
 	case IPU_PIX_FMT_GENERIC:
 	case IPU_PIX_FMT_RGB24:
@@ -843,6 +916,27 @@ int32_t ipu_init_sync_panel(int disp, uint32_t pixel_clk,
 			    uint16_t v_sync_width, uint16_t v_end_width,
 			    uint32_t v_to_h_sync, ipu_di_signal_cfg_t sig)
 {
+// minli-debug_video
+	debug("%s:\n", __func__);
+	debug("\t disp = %d\n", disp);
+	debug("\t pixel_clk = %d, ", pixel_clk);
+	debug("\t pixel_fmt = %c%c%c%c\n", (char)pixel_fmt, (char)(pixel_fmt >> 8), (char)(pixel_fmt >> 16), (char)(pixel_fmt >> 24));
+	debug("\t width = %d, height = %d\n", width, height);
+	debug("\t h_start_width = %d, h_sync_width = %d, h_end_width = %d\n", h_start_width, h_sync_width, h_end_width);
+	debug("\t v_start_width = %d, v_sync_width = %d, v_end_width = %d\n", v_start_width, v_sync_width, v_end_width);
+	debug("\t v_to_h_sync = %d\n", v_to_h_sync);
+	debug("\t sig at 0x%p\n", sig);
+	debug("\t\t sig->datamask_en = %d\n", sig.datamask_en);
+	debug("\t\t sig->ext_clk = %d\n", sig.ext_clk);
+	debug("\t\t sig->interlaced = %d\n", sig.interlaced);
+	debug("\t\t sig->odd_field_first = %d\n", sig.odd_field_first);
+	debug("\t\t sig->clkidle_en = %d\n", sig.clkidle_en);
+	debug("\t\t sig->data_pol = %d\n", sig.data_pol);
+	debug("\t\t sig->clk_pol = %d\n", sig.clk_pol);
+	debug("\t\t sig->enable_pol = %d\n", sig.enable_pol);
+	debug("\t\t sig->Hsync_pol = %d\n", sig.Hsync_pol);
+	debug("\t\t sig->Vsync_pol = %d\n", sig.Vsync_pol);
+
 	uint32_t reg;
 	uint32_t di_gen, vsync_cnt;
 	uint32_t div, rounded_pixel_clk;
@@ -876,11 +970,19 @@ int32_t ipu_init_sync_panel(int disp, uint32_t pixel_clk,
 			if ((clk_get_usecount(g_pixel_clk[0]) == 0) &&
 				(clk_get_usecount(g_pixel_clk[1]) == 0)) {
 				di_parent = clk_get_parent(g_di_clk[disp]);
+// minli-debug_video
+				if(di_parent)
+					debug("\t di_parent = %p\n", di_parent);
+				else
+					debug("\t di_parent does not exist\n");
+
 				rounded_pixel_clk =
 					clk_round_rate(g_pixel_clk[disp],
 						pixel_clk);
 				div  = clk_get_rate(di_parent) /
 					rounded_pixel_clk;
+// minli-debug_video
+				debug("\t rounded_pixel_clk = %dHz, div = %d\n", rounded_pixel_clk, div);
 				if (div % 2)
 					div++;
 				if (clk_get_rate(di_parent) != div *
@@ -900,12 +1002,22 @@ int32_t ipu_init_sync_panel(int disp, uint32_t pixel_clk,
 		if (clk_get_usecount(g_pixel_clk[disp]) != 0)
 			clk_set_parent(g_pixel_clk[disp], g_ipu_clk);
 	}
+// minli-debug_video
+	debug("\t Calculate rounded pixel clk, because parent clock is maybe changed.\n");
+	debug("\t  g_pixel_clk[%d] = %dHz\n", disp, g_pixel_clk[disp]->rate);
+	debug("\t  pixel clk = %dHz\n", pixel_clk);
+
 	rounded_pixel_clk = clk_round_rate(g_pixel_clk[disp], pixel_clk);
+// minli-debug_video
+	debug("\t  rounded_pixel_clk = %dHz\n", rounded_pixel_clk);
+
 	clk_set_rate(g_pixel_clk[disp], rounded_pixel_clk);
 	udelay(5000);
 	/* Get integer portion of divider */
 	div = clk_get_rate(clk_get_parent(g_pixel_clk[disp])) /
 		rounded_pixel_clk;
+// minli-debug_video
+	debug("\t div = %d\n", div);
 
 	ipu_di_data_wave_config(disp, SYNC_WAVE, div - 1, div - 1);
 	ipu_di_data_pin_config(disp, SYNC_WAVE, DI_PIN15, 3, 0, div * 2);
@@ -919,6 +1031,9 @@ int32_t ipu_init_sync_panel(int disp, uint32_t pixel_clk,
 	di_gen = __raw_readl(DI_GENERAL(disp));
 
 	if (sig.interlaced) {
+// minli-debug_video
+		debug("\t interlaced mode\n\n");
+
 		/* Setup internal HSYNC waveform */
 		ipu_di_sync_config(
 				disp,		/* display */
@@ -1085,18 +1200,30 @@ int32_t ipu_init_sync_panel(int disp, uint32_t pixel_clk,
 		di_gen |= DI_GEN_POLARITY_5;
 		di_gen |= DI_GEN_POLARITY_8;
 	} else {
+// minli-debug_video
+		debug("\t progressive mode\n");
+
 		/* Setup internal HSYNC waveform */
+// minli-debug_video
+		debug("\n\t Setup internal HSYNC waveform\n");
+
 		ipu_di_sync_config(disp, 1, h_total - 1, DI_SYNC_CLK,
 				0, DI_SYNC_NONE, 0, DI_SYNC_NONE,
 				0, DI_SYNC_NONE,
 				DI_SYNC_NONE, 0, 0);
 
 		/* Setup external (delayed) HSYNC waveform */
+// minli-debug_video
+		debug("\n\t Setup external (delayed) HSYNC waveform\n");
+
 		ipu_di_sync_config(disp, DI_SYNC_HSYNC, h_total - 1,
 				DI_SYNC_CLK, div * v_to_h_sync, DI_SYNC_CLK,
 				0, DI_SYNC_NONE, 1, DI_SYNC_NONE,
 				DI_SYNC_CLK, 0, h_sync_width * 2);
 		/* Setup VSYNC waveform */
+// minli-debug_video
+		debug("\n\t Setup VSYNC waveform\n");
+
 		vsync_cnt = DI_SYNC_VSYNC;
 		ipu_di_sync_config(disp, DI_SYNC_VSYNC, v_total - 1,
 				DI_SYNC_INT_HSYNC, 0, DI_SYNC_NONE, 0,
@@ -1105,6 +1232,9 @@ int32_t ipu_init_sync_panel(int disp, uint32_t pixel_clk,
 		__raw_writel(v_total - 1, DI_SCR_CONF(disp));
 
 		/* Setup active data waveform to sync with DC */
+// minli-debug_video
+		debug("\n\t Setup active data waveform to sync with DC\n");
+
 		ipu_di_sync_config(disp, 4, 0, DI_SYNC_HSYNC,
 				v_sync_width + v_start_width, DI_SYNC_HSYNC,
 				height,
@@ -1132,6 +1262,8 @@ int32_t ipu_init_sync_panel(int disp, uint32_t pixel_clk,
 		__raw_writel(0, DI_STP_REP9(disp));
 
 		/* Init template microcode */
+// minli-debug_video
+		debug("\n\t Init template microcode\n");
 		if (disp) {
 		   ipu_dc_write_tmpl(2, WROD(0), 0, map, SYNC_WAVE, 8, 5);
 		   ipu_dc_write_tmpl(3, WROD(0), 0, map, SYNC_WAVE, 4, 5);
@@ -1206,21 +1338,31 @@ int32_t ipu_disp_set_global_alpha(ipu_channel_t channel, unsigned char enable,
 		clk_enable(g_ipu_clk);
 
 	if (bg_chan) {
+// minli-debug_video
+		debug_video("\t Graphic window is full plane\n");
 		reg = __raw_readl(DP_COM_CONF());
 		__raw_writel(reg & ~DP_COM_CONF_GWSEL, DP_COM_CONF());
 	} else {
+// minli-debug_video
+		debug_video("\t Graphic window is partial plane\n");
 		reg = __raw_readl(DP_COM_CONF());
 		__raw_writel(reg | DP_COM_CONF_GWSEL, DP_COM_CONF());
 	}
 
 	if (enable) {
+// minli-debug_video
+		debug_video("\t Set Global Alpha\n");
 		reg = __raw_readl(DP_GRAPH_WIND_CTRL()) & 0x00FFFFFFL;
 		__raw_writel(reg | ((uint32_t) alpha << 24),
 			     DP_GRAPH_WIND_CTRL());
 
+// minli-debug_video
+		debug_video("\t Global Alpha mode\n");
 		reg = __raw_readl(DP_COM_CONF());
 		__raw_writel(reg | DP_COM_CONF_GWAM, DP_COM_CONF());
 	} else {
+// minli-debug_video
+		debug_video("\t Local Alpha mode\n");
 		reg = __raw_readl(DP_COM_CONF());
 		__raw_writel(reg & ~DP_COM_CONF_GWAM, DP_COM_CONF());
 	}
@@ -1287,9 +1429,13 @@ int32_t ipu_disp_set_color_key(ipu_channel_t channel, unsigned char enable,
 		reg = __raw_readl(DP_GRAPH_WIND_CTRL()) & 0xFF000000L;
 		__raw_writel(reg | color_key, DP_GRAPH_WIND_CTRL());
 
+// minli-debug_video
+		debug_video("\t Enable color keying of graphic window\n");
 		reg = __raw_readl(DP_COM_CONF());
 		__raw_writel(reg | DP_COM_CONF_GWCKE, DP_COM_CONF());
 	} else {
+// minli-debug_video
+		debug_video("\t Disable color keying of graphic window\n");
 		reg = __raw_readl(DP_COM_CONF());
 		__raw_writel(reg & ~DP_COM_CONF_GWCKE, DP_COM_CONF());
 	}

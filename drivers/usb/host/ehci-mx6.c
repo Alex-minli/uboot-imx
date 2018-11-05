@@ -205,10 +205,17 @@ int usb_phy_mode(int port)
 
 	val = __raw_readl(phy_ctrl);
 
-	if (val & USBPHY_CTRL_OTG_ID)
-		return USB_INIT_DEVICE;
-	else
-		return USB_INIT_HOST;
+// minli-port-181011
+	debug("%s: phy_ctrl(0x%p) = 0x%08x\n", __func__, phy_ctrl, val);
+
+// minli--port-181011
+// Force to device mode
+//	if (val & USBPHY_CTRL_OTG_ID)
+//		return USB_INIT_DEVICE;
+//	else
+//		return USB_INIT_HOST;
+
+	return USB_INIT_DEVICE;
 }
 
 int __weak board_usb_phy_mode(int port)

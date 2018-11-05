@@ -8,11 +8,16 @@
 
 int board_video_skip(void)
 {
+// minli-debug_video
+	debug("%s: Total display count = %d\n", __func__, display_count);
+
 	int i;
 	int ret;
 	char const *panel = getenv("panel");
 
 	if (!panel) {
+// minli-debug_video
+		debug("\t No environment variable defined, detect assambled panel\n");
 		for (i = 0; i < display_count; i++) {
 			struct display_info_t const *dev = displays+i;
 			if (dev->detect && dev->detect(dev)) {
@@ -27,6 +32,8 @@ int board_video_skip(void)
 			i = 0;
 		}
 	} else {
+// minli-debug_video
+		debug("\t Environment variable defined.\n");
 		for (i = 0; i < display_count; i++) {
 			if (!strcmp(panel, displays[i].mode.name))
 				break;

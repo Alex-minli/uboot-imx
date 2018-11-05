@@ -22,7 +22,13 @@
 
 #if defined(CONFIG_MX6)
 #define TEMPERATURE_MIN		-40
-#define TEMPERATURE_HOT		80
+
+// minli-port-181011
+// Change “HOT” tempture from 85 to 125 degree
+// to fix "Can't boot up in high tempture environment"
+//#define TEMPERATURE_HOT		80
+#define TEMPERATURE_HOT		125
+
 #define TEMPERATURE_MAX		125
 #define FACTOR0			10000000
 #define FACTOR1			15423

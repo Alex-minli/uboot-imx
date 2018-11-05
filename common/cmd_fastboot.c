@@ -11,6 +11,9 @@
 #include <command.h>
 #include <g_dnl.h>
 
+// minli-port-181011
+#include <fsl_fastboot.h>
+
 static int do_fastboot(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[])
 {
 	int ret;
@@ -27,6 +30,11 @@ static int do_fastboot(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[])
 		g_dnl_clear_detach();
 		return CMD_RET_FAILURE;
 	}
+
+// minli-port-181011
+// * Display partition
+// *
+	fastboot_flash_dump_ptn();
 
 	while (1) {
 		if (g_dnl_detach())

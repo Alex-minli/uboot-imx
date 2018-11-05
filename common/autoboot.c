@@ -178,14 +178,35 @@ static int abortboot_normal(int bootdelay)
 		ts = get_timer(0);
 		do {
 			if (tstc()) {	/* we got a key press	*/
+// minli-port-181011
+//				abort  = 1;	/* don't auto boot	*/
+//				bootdelay = 0;	/* no more delay	*/
+//# ifdef CONFIG_MENUKEY
+//				menukey = getc();
+//# else
+//				(void) getc();  /* consume input	*/
+//# endif
+//				break;
+# ifdef CONFIG_MENUKEY
 				abort  = 1;	/* don't auto boot	*/
 				bootdelay = 0;	/* no more delay	*/
-# ifdef CONFIG_MENUKEY
+
 				menukey = getc();
-# else
-				(void) getc();  /* consume input	*/
-# endif
 				break;
+# else
+#if defined(DEBUG) || defined(DEBUG_VIDEO_ONLY)
+				(void) getc();  /* consume input	*/
+				abort  = 1;	/* don't auto boot	*/
+				bootdelay = 0;	/* no more delay	*/
+				break;
+#else
+				if(getc() == '>') {  	/* Check input	*/
+					abort  = 1;	/* don't auto boot	*/
+					bootdelay = 0;	/* no more delay	*/
+					break;
+				}
+#endif
+# endif
 			}
 			udelay(10000);
 		} while (!abort && get_timer(ts) < 1000);

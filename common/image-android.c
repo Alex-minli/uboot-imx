@@ -15,6 +15,11 @@
 
 static char andr_tmp_str[ANDR_BOOT_ARGS_SIZE + 1];
 
+// minli-port-181011
+#ifdef CONFIG_CMD_BPARAM
+#include <bparam.h>
+#endif
+
 #ifdef CONFIG_BRILLO_SUPPORT
 #include <linux/usb/ch9.h>
 #include <linux/usb/gadget.h>
@@ -53,6 +58,9 @@ int android_image_get_kernel(const struct andr_img_hdr *hdr, int verify,
 
 	int len = 0;
 	if (*hdr->cmdline) {
+// minli-port-181011
+		debug("hdr->cmdline: %s\n", hdr->cmdline);
+
 		len += strlen(hdr->cmdline);
 	}
 
@@ -84,6 +92,43 @@ int android_image_get_kernel(const struct andr_img_hdr *hdr, int verify,
 					newbootargs,
 					serialnr.high,
 					serialnr.low);
+#endif
+
+// minli-port-181011
+#ifdef CONFIG_CMD_BPARAM
+	struct boot_param_info *boot_param;
+	unsigned long boot_param_addr;
+	const char *addr_str;
+
+	debug("\tcommandline: %s\n",commandline);
+
+// Check Env
+	debug("\tChecking boot params...\n");
+	addr_str = getenv("params_loadaddr");
+	if (addr_str != NULL)
+		boot_param_addr = simple_strtoul(addr_str, NULL, 16);
+	else
+		boot_param_addr = CONFIG_PARAMS_LOADADDR;
+
+	boot_param = (struct boot_param_info *)boot_param_addr;
+
+
+	debug("\tChecking Recovery...\n");
+	addr_str = getenv("bootcmd_android_recovery");
+	if (addr_str != NULL){
+		strcat(commandline, " recovery_cmd=");
+		strcat(commandline, boot_param->Boot_cmd);
+		debug("\tcommandline: %s\n",commandline);
+	}
+
+	debug("\tChecking boot type...\n");
+	if( strcmp(boot_param->Boot_type, "SYSTEMA") == 0)
+		strcat(commandline, " boot_type=0");
+	else if( strcmp(boot_param->Boot_type, "SYSTEMB") == 0)
+		strcat(commandline, " boot_type=1");
+	
+	debug("\tcommandline: %s\n",commandline);
+	
 #endif
 
 #ifdef CONFIG_BRILLO_SUPPORT

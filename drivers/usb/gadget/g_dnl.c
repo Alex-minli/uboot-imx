@@ -45,6 +45,12 @@ static const char product[] = "USB download gadget";
 static char g_dnl_serial[MAX_STRING_SERIAL];
 static const char manufacturer[] = CONFIG_G_DNL_MANUFACTURER;
 
+// minli-port-181011
+char *g_dnl_get_serialnumber(void)
+{
+	return g_dnl_serial;
+}
+
 void g_dnl_set_serialnumber(char *s)
 {
 	memset(g_dnl_serial, 0, MAX_STRING_SERIAL);

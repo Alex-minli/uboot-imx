@@ -5,6 +5,13 @@
  * SPDX-License-Identifier:	GPL-2.0+
  */
 
+/* 
+ * minli-port-181011
+ * Switch debug
+#define DEBUG
+#define DEBUG_VIDEO_ONLY
+ */
+
 #ifndef __COMMON_H_
 #define __COMMON_H_	1
 
@@ -88,10 +95,24 @@ typedef volatile unsigned char	vu_char;
 #define CONFIG_SYS_SUPPORT_64BIT_DATA
 #endif
 
+/* 
+ * minli-debug-logo
+ * Add Video debug option
 #ifdef DEBUG
 #define _DEBUG	1
 #else
 #define _DEBUG	0
+#endif
+ */
+#ifdef DEBUG
+#define _DEBUG		1
+#define _DEBUG_VIDEO	1
+#elif defined(DEBUG_VIDEO_ONLY)
+#define _DEBUG		0
+#define _DEBUG_VIDEO	1
+#else
+#define _DEBUG		0
+#define _DEBUG_VIDEO	0
 #endif
 
 #ifndef pr_fmt
@@ -111,6 +132,14 @@ typedef volatile unsigned char	vu_char;
 
 #define debug(fmt, args...)			\
 	debug_cond(_DEBUG, fmt, ##args)
+
+/* 
+ * minli-debug-logo
+ * Add Video debug option
+ */
+#define debug_video(fmt, args...)			\
+	debug_cond(_DEBUG_VIDEO, fmt, ##args)
+
 
 /*
  * An assertion is run-time check done in debug mode only. If DEBUG is not

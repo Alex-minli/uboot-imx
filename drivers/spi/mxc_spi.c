@@ -99,8 +99,10 @@ static s32 spi_cfg_mxc(struct mxc_spi_slave *mxcs, unsigned int cs)
 	div = DIV_ROUND_UP(clk_src, max_hz);
 	div = get_cspi_div(div);
 
-	debug("clk %d Hz, div %d, real clk %d Hz\n",
-		max_hz, div, clk_src / (4 << div));
+// minli-port-181011
+// Mask debug
+//	debug("clk %d Hz, div %d, real clk %d Hz\n",
+//		max_hz, div, clk_src / (4 << div));
 
 	ctrl_reg = MXC_CSPICTRL_CHIPSELECT(cs) |
 		MXC_CSPICTRL_BITCOUNT(MXC_CSPICTRL_MAXBITS) |
@@ -161,7 +163,9 @@ static s32 spi_cfg_mxc(struct mxc_spi_slave *mxcs, unsigned int cs)
 		}
 	}
 
-	debug("pre_div = %d, post_div=%d\n", pre_div, post_div);
+// minli-port-181011
+// Mask debug
+//	debug("pre_div = %d, post_div=%d\n", pre_div, post_div);
 	reg_ctrl = (reg_ctrl & ~MXC_CSPICTRL_SELCHAN(3)) |
 		MXC_CSPICTRL_SELCHAN(cs);
 	reg_ctrl = (reg_ctrl & ~MXC_CSPICTRL_PREDIV(0x0F)) |
@@ -195,9 +199,13 @@ static s32 spi_cfg_mxc(struct mxc_spi_slave *mxcs, unsigned int cs)
 	reg_config = (reg_config & ~(1 << (cs + MXC_CSPICON_PHA))) |
 		(sclkpha << (cs + MXC_CSPICON_PHA));
 
-	debug("reg_ctrl = 0x%x\n", reg_ctrl);
+// minli-port-181011
+// Mask debug
+//	debug("reg_ctrl = 0x%x\n", reg_ctrl);
 	reg_write(&regs->ctrl, reg_ctrl);
-	debug("reg_config = 0x%x\n", reg_config);
+// minli-port-181011
+// Mask debug
+//	debug("reg_config = 0x%x\n", reg_config);
 	reg_write(&regs->cfg, reg_config);
 
 	/* save config register and control register */
@@ -222,8 +230,10 @@ int spi_xchg_single(struct spi_slave *slave, unsigned int bitlen,
 	u32 ts;
 	int status;
 
-	debug("%s: bitlen %d dout 0x%x din 0x%x\n",
-		__func__, bitlen, (u32)dout, (u32)din);
+// minli-port-181011
+// Mask debug
+//	debug("%s: bitlen %d dout 0x%x din 0x%x\n",
+//		__func__, bitlen, (u32)dout, (u32)din);
 
 	mxcs->ctrl_reg = (mxcs->ctrl_reg &
 		~MXC_CSPICTRL_BITCOUNT(MXC_CSPICTRL_MAXBITS)) |
@@ -250,7 +260,9 @@ int spi_xchg_single(struct spi_slave *slave, unsigned int bitlen,
 				data = (data << 8) | (*dout++ & 0xFF);
 			}
 		}
-		debug("Sending SPI 0x%x\n", data);
+// minli-port-181011
+// Mask debug
+//		debug("Sending SPI 0x%x\n", data);
 
 		reg_write(&regs->txdata, data);
 		nbytes -= cnt;
@@ -272,7 +284,9 @@ int spi_xchg_single(struct spi_slave *slave, unsigned int bitlen,
 				dout += 4;
 			}
 		}
-		debug("Sending SPI 0x%x\n", data);
+// minli-port-181011
+// Mask debug
+//		debug("Sending SPI 0x%x\n", data);
 		reg_write(&regs->txdata, data);
 		nbytes -= 4;
 	}
@@ -303,7 +317,9 @@ int spi_xchg_single(struct spi_slave *slave, unsigned int bitlen,
 		data = reg_read(&regs->rxdata);
 		cnt = (bitlen % 32) / 8;
 		data = cpu_to_be32(data) >> ((sizeof(data) - cnt) * 8);
-		debug("SPI Rx unaligned: 0x%x\n", data);
+// minli-port-181011
+// Mask debug
+//		debug("SPI Rx unaligned: 0x%x\n", data);
 		if (din) {
 			memcpy(din, &data, cnt);
 			din += cnt;
@@ -315,7 +331,9 @@ int spi_xchg_single(struct spi_slave *slave, unsigned int bitlen,
 		u32 tmp;
 		tmp = reg_read(&regs->rxdata);
 		data = cpu_to_be32(tmp);
-		debug("SPI Rx: 0x%x 0x%x\n", tmp, data);
+// minli-port-181011
+// Mask debug
+//		debug("SPI Rx: 0x%x 0x%x\n", tmp, data);
 		cnt = min_t(u32, nbytes, sizeof(data));
 		if (din) {
 			memcpy(din, &data, cnt);

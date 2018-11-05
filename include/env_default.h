@@ -100,6 +100,21 @@ const uchar default_environment[] = {
 #ifdef	CONFIG_LOADADDR
 	"loadaddr="	__stringify(CONFIG_LOADADDR)	"\0"
 #endif
+
+// minli-port-181011
+// * Add environment */
+#ifdef	CONFIG_PARAMS_LOADADDR
+	"params_loadaddr="	__stringify(CONFIG_PARAMS_LOADADDR)	"\0"
+#endif
+#ifdef	CONFIG_BOOT_TYPE_SET
+	"boot_type_set="	CONFIG_BOOT_TYPE_SET			"\0"
+#endif
+#ifdef	CONFIG_BOOT_JUDGE
+	"boot_judge="		CONFIG_BOOT_JUDGE			"\0"
+#endif
+// * Add environment End*/
+// minli-port-181011
+
 #ifdef	CONFIG_CLOCKS_IN_MHZ
 	"clocks_in_mhz=1\0"
 #endif

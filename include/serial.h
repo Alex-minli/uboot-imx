@@ -24,6 +24,15 @@ void default_serial_puts(const char *s);
 
 extern struct serial_device serial_smc_device;
 extern struct serial_device serial_scc_device;
+
+/* 
+ * minli-port-Serial
+ * Add Uart(MCU) port define
+ */
+#ifdef CONFIG_MPU2MCU_UART
+extern struct serial_device *mcu_serial_console(void);
+#endif
+
 extern struct serial_device *default_serial_console(void);
 
 #if	defined(CONFIG_405GP) || \
@@ -43,6 +52,15 @@ extern struct serial_device eserial2_device;
 
 extern void serial_register(struct serial_device *);
 extern void serial_initialize(void);
+
+/* 
+ * minli-port-Serial
+ * Add Uart(MCU) port define
+ */
+#ifdef CONFIG_MPU2MCU_UART
+extern void serial_initialize_mcu(void);
+#endif
+
 extern void serial_stdio_init(void);
 extern int serial_assign(const char *name);
 extern void serial_reinit_all(void);

@@ -1,0 +1,7 @@
+MX6SABRESD BOARD
+M:	Min Li <minli@pateo.com.cn>
+S:	Maintained
+F:	board/freescale/mx6qp_S11/
+F:	include/configs/mx6qp_S11.h
+F:	configs/mx6qp_S11_android_defconfig
+

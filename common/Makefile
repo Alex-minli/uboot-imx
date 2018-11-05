@@ -36,6 +36,10 @@ obj-$(CONFIG_CMD_BOOTM) += cmd_bootm.o bootm.o bootm_os.o
 obj-y += cmd_help.o
 obj-y += cmd_version.o
 
+# // minli-port-181011
+# boot paramemts command
+obj-$(CONFIG_CMD_BPARAM) += cmd_bparam.o
+
 # environment
 obj-y += env_attr.o
 obj-y += env_callback.o

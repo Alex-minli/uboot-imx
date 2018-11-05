@@ -144,38 +144,125 @@ static struct usb_gadget_strings *fastboot_strings[] = {
 
 #ifdef CONFIG_FSL_FASTBOOT
 
-#define ANDROID_MBR_OFFSET	    0
-#define ANDROID_MBR_SIZE	    0x200
-#define ANDROID_BOOTLOADER_OFFSET   0x400
-#define ANDROID_BOOTLOADER_SIZE	    0xFFC00
-#define ANDROID_KERNEL_OFFSET	    0x100000
-#define ANDROID_KERNEL_SIZE	    0x500000
-#define ANDROID_URAMDISK_OFFSET	    0x600000
-#define ANDROID_URAMDISK_SIZE	    0x100000
+// minli-port-181011
+// * Mask original define
+// *
+//#define ANDROID_MBR_OFFSET	    0
+//#define ANDROID_MBR_SIZE	    0x200
+//#define ANDROID_BOOTLOADER_OFFSET   0x400
+//#define ANDROID_BOOTLOADER_SIZE	    0xFFC00
+//#define ANDROID_KERNEL_OFFSET	    0x100000
+//#define ANDROID_KERNEL_SIZE	    0x500000
+//#define ANDROID_URAMDISK_OFFSET	    0x600000
+//#define ANDROID_URAMDISK_SIZE	    0x100000
+//
+//
+//
+//#define MMC_SATA_BLOCK_SIZE 512
+//#define FASTBOOT_FBPARTS_ENV_MAX_LEN 1024
+///* To support the Android-style naming of flash */
+//#define MAX_PTN		    16
+//
+//
+///*pentry index internally*/
+//enum {
+//	PTN_MBR_INDEX = 0,
+//	PTN_BOOTLOADER_INDEX,
+//	PTN_KERNEL_INDEX,
+//	PTN_URAMDISK_INDEX,
+//	PTN_SYSTEM_INDEX,
+//	PTN_RECOVERY_INDEX,
+//	PTN_DATA_INDEX,
+//#ifdef CONFIG_BRILLO_SUPPORT
+//	PTN_KERNEL_B_INDEX,
+//	PTN_SYSTEM_B_INDEX,
+//	PTN_MISC_INDEX,
+//#endif
+//	PTN_NUM
+//};
+
+// minli-port-181011
+// * redefine partition of Nor & eMMC
+// * Nor partition is in front,eMMC is in rear
+// *
+// * partition 0(bootloader_nor) length actural is 0x7,FC00 byte
+// * adjust to 0x8,0000 because Nor flash need erased based 4K sector.
+// *
+/*
+ * imx family android layout
+ * 
+ * Below is Nor flash part,length need be muti of sector size(4K)
+ *
+ * 0 mbr 		- 0 ~ 0x3FF byte(Need fix length for 4K)
+ * 1 bootloader_nor 	- 0x400 ~ 0x7,FC00 byte(Need fix length for 4K)
+ * 2 kernel_nor 	- 0x8,0000 ~ 0x730000 byte
+ * 3 recovery_nor 	- 0x7B,0000 ~ 0x1,0000 byte
+ *   NVRamA_nor 	- 0x7C,0000 ~ 0x2,0000 byte
+ *   NVRamB_nor 	- 0x7E,0000 ~ 0x2,0000 byte
+ * 4 burn_nor 		- 0 ~ 0x80,0000 byte
+ * 
+ * Below is EMMC part
+ *
+ * 5 BOOT_ROM partition - /dev/mmcblk0p0  or /dev/sda2
+ * 6 SDCARD partition 	- /dev/mmcblk0p1  or /dev/sda2
+ * 7 SYSTEM partition 	- /dev/mmcblk0p2  or /dev/sda2
+ * 8 RECOVERY partition - /dev/mmcblk0p3  or /dev/sda2
+ * 9 DATA partition 	- /dev/mmcblk0p5  or /dev/sda2
+ * 10 CACHE partition 	- /dev/mmcblk0p6  or /dev/sda2
+ * 11 PRIVATE partition - /dev/mmcblk0p7  or /dev/sda2
+ * 12 VENDOR partition 	- /dev/mmcblk0p8  or /dev/sda2
+ * 13 BOOTB_ROM partition - /dev/mmcblk0p9  or /dev/sda2
+ * 14 RECOVERYB partition - /dev/mmcblk0p10  or /dev/sda2
+ * 15 SYSTEMB partition - /dev/mmcblk0p11  or /dev/sda2
+ * 16 MAP partition 	- /dev/mmcblk0p12  or /dev/sda2
+ *    MAP_LICENSE partition - /dev/mmcblk0p13  or /dev/sda2
+ */
+#define ANDROID_MBR_OFFSET	    	0
+#define ANDROID_MBR_SIZE	    	0x1
+#define ANDROID_BOOTLOADER_NOR_OFFSET   0x400
+#define ANDROID_BOOTLOADER_NOR_SIZE	0x80000
+#define ANDROID_KERNEL_NOR_OFFSET	0x80000
+#define ANDROID_KERNEL_NOR_SIZE	    	0x730000
+#define ANDROID_RECOVERY_NOR_OFFSET	0x7B0000
+#define ANDROID_RECOVERY_NOR_SIZE	0x10000
+#define ANDROID_BURN_NOR_OFFSET		0x0
+#define ANDROID_BURN_NOR_SIZE		0x800000
+
+#define ANDROID_BOOT_OFFSET		0x100000
+#define ANDROID_BOOT_SIZE		0xA00000
+// *
+// * redefine partition of Nor & eMMC
 
 
-
+#define NOR_SECTOR_SIZE 4096
 #define MMC_SATA_BLOCK_SIZE 512
 #define FASTBOOT_FBPARTS_ENV_MAX_LEN 1024
 /* To support the Android-style naming of flash */
-#define MAX_PTN		    16
+#define MAX_PTN		    32
 
 
 /*pentry index internally*/
 enum {
-	PTN_MBR_INDEX = 0,
-	PTN_BOOTLOADER_INDEX,
-	PTN_KERNEL_INDEX,
-	PTN_URAMDISK_INDEX,
-	PTN_SYSTEM_INDEX,
-	PTN_RECOVERY_INDEX,
-	PTN_DATA_INDEX,
-#ifdef CONFIG_BRILLO_SUPPORT
-	PTN_KERNEL_B_INDEX,
-	PTN_SYSTEM_B_INDEX,
-	PTN_MISC_INDEX,
-#endif
-	PTN_NUM
+    PTN_MBR_INDEX = 0,
+    PTN_BOOTLOADER_NOR_INDEX,
+    PTN_KERNEL_NOR_INDEX,
+    PTN_RECOVERY_NOR_INDEX,
+    PTN_BURN_NOR_INDEX,
+
+    PTN_BOOT_INDEX,
+    PTN_SDCARD_INDEX,
+    PTN_SYSTEM_INDEX,
+    PTN_RECOVERY_INDEX,
+    PTN_DATA_INDEX,
+    PTN_CACHE_INDEX,
+    PTN_PRIVATE_INDEX,
+    PTN_RESC_INDEX,
+    PTN_BOOT_B_INDEX,
+    PTN_RECOVERY_B_INDEX,
+    PTN_SYSTEM_B_INDEX,
+    PTN_MAP_INDEX,
+
+    PTN_NUM
 };
 
 static unsigned int download_bytes_unpadded;
@@ -833,8 +920,15 @@ static int is_sparse_partition(struct fastboot_ptentry *ptn)
 	    !strncmp(ptn->name, FASTBOOT_PARTITION_DATA,
 	    strlen(FASTBOOT_PARTITION_DATA)))) {
 #else
+// minli-port-181011
+//	 if (ptn && (!strncmp(ptn->name,
+//				 FASTBOOT_PARTITION_SYSTEM, strlen(FASTBOOT_PARTITION_SYSTEM))
+//				 || !strncmp(ptn->name,
+//				 FASTBOOT_PARTITION_DATA, strlen(FASTBOOT_PARTITION_DATA)))) {
 	 if (ptn && (!strncmp(ptn->name,
-				 FASTBOOT_PARTITION_SYSTEM, strlen(FASTBOOT_PARTITION_SYSTEM))
+				 FASTBOOT_PARTITION_SYSTEM_A, strlen(FASTBOOT_PARTITION_SYSTEM_A))
+				 || !strncmp(ptn->name,
+				 FASTBOOT_PARTITION_SYSTEM_B, strlen(FASTBOOT_PARTITION_SYSTEM_B))
 				 || !strncmp(ptn->name,
 				 FASTBOOT_PARTITION_DATA, strlen(FASTBOOT_PARTITION_DATA)))) {
 #endif
@@ -854,6 +948,75 @@ static void process_flash_mmc(const char *cmdbuf, char *response)
 		if (ptn == 0) {
 			printf("Partition:'%s' does not exist\n", ptn->name);
 			sprintf(response, "FAILpartition does not exist");
+// minli-port-181011
+// * Check is operation Nor flash
+// *
+		} else if(fastboot_ptn_Location_nor(ptn->name)) {
+// * Flash Nor flash operation
+// *
+			if (download_bytes > ptn->length) {
+				printf("Image too large for the partition\n");
+				sprintf(response, "FAILimage too large for partition");
+			} else {
+				unsigned int temp1,temp2;
+
+				char nor_probe[128];
+				char nor_erase[128];
+				char nor_write[128];
+				int norret = 0;
+
+				printf("writing to partition '%s'\n", ptn->name);
+
+				sprintf(nor_probe, "sf probe");
+
+				/* aligned to 4K Sector Size */
+				temp1 = (ptn->start / NOR_SECTOR_SIZE) * NOR_SECTOR_SIZE;
+				temp2 = ((ptn->length + NOR_SECTOR_SIZE-1) / NOR_SECTOR_SIZE) * NOR_SECTOR_SIZE;
+
+				sprintf(nor_erase, "sf erase 0x%x 0x%x",
+						temp1, /*dest*/
+						temp2 /*length*/);
+				sprintf(nor_write, "sf write 0x%x 0x%x 0x%x",
+						(unsigned int)interface.transfer_buffer, /*source*/
+						ptn->start, /*dest*/
+						download_bytes /*length*/);
+
+
+				printf("Initializing '%s'\n", ptn->name);
+
+				debug("Run Command '%s'\n", nor_probe);
+				norret = run_command(nor_probe, 0);
+				if (norret)
+					sprintf(response, "FAIL:Init of Nor Flash");
+				else
+					sprintf(response, "OKAY");
+
+
+				printf("Erasing '%s'\n", ptn->name);
+
+				debug("Run Command '%s'\n", nor_erase);
+				norret = run_command(nor_erase, 0);
+				if (norret)
+					sprintf(response, "FAIL:Erase of Nor Flash");
+				else
+					sprintf(response, "OKAY");
+
+
+				printf("Writing '%s'\n", ptn->name);
+
+				debug("Run Command '%s'\n", nor_write);
+				norret = run_command(nor_write, 0);
+				if (norret) {
+					printf("Writing '%s' FAILED!\n", ptn->name);
+					sprintf(response, "FAIL: Write partition");
+				} else {
+					printf("Writing '%s' DONE!\n", ptn->name);
+					sprintf(response, "OKAY");
+				}
+			}
+// *
+// * End of Flash Nor flash operation
+// minli-port-181011
 		} else if ((download_bytes >
 			   ptn->length * MMC_SATA_BLOCK_SIZE) &&
 				!(ptn->flags & FASTBOOT_PTENTRY_FLAGS_WRITE_ENV)) {
@@ -1203,32 +1366,65 @@ static int _fastboot_parts_load_from_ptable(void)
 		return -1;
 	}
 
+// minli-port-181011
+// * Redefine partition
+// *
+//	memset((char *)ptable, 0,
+//		    sizeof(struct fastboot_ptentry) * (PTN_NUM));
+//	/* MBR */
+//	strcpy(ptable[PTN_MBR_INDEX].name, "mbr");
+//	ptable[PTN_MBR_INDEX].start = ANDROID_MBR_OFFSET / dev_desc->blksz;
+//	ptable[PTN_MBR_INDEX].length = ANDROID_MBR_SIZE / dev_desc->blksz;
+//	ptable[PTN_MBR_INDEX].partition_id = user_partition;
+//	/* Bootloader */
+//	strcpy(ptable[PTN_BOOTLOADER_INDEX].name, FASTBOOT_PARTITION_BOOTLOADER);
+//	ptable[PTN_BOOTLOADER_INDEX].start =
+//				ANDROID_BOOTLOADER_OFFSET / dev_desc->blksz;
+//	ptable[PTN_BOOTLOADER_INDEX].length =
+//				 ANDROID_BOOTLOADER_SIZE / dev_desc->blksz;
+//	ptable[PTN_BOOTLOADER_INDEX].partition_id = boot_partition;
+
+
 	memset((char *)ptable, 0,
 		    sizeof(struct fastboot_ptentry) * (PTN_NUM));
 	/* MBR */
 	strcpy(ptable[PTN_MBR_INDEX].name, "mbr");
-	ptable[PTN_MBR_INDEX].start = ANDROID_MBR_OFFSET / dev_desc->blksz;
-	ptable[PTN_MBR_INDEX].length = ANDROID_MBR_SIZE / dev_desc->blksz;
+	ptable[PTN_MBR_INDEX].start = ANDROID_MBR_OFFSET;
+	ptable[PTN_MBR_INDEX].length = ANDROID_MBR_SIZE;
 	ptable[PTN_MBR_INDEX].partition_id = user_partition;
-	/* Bootloader */
-	strcpy(ptable[PTN_BOOTLOADER_INDEX].name, FASTBOOT_PARTITION_BOOTLOADER);
-	ptable[PTN_BOOTLOADER_INDEX].start =
-				ANDROID_BOOTLOADER_OFFSET / dev_desc->blksz;
-	ptable[PTN_BOOTLOADER_INDEX].length =
-				 ANDROID_BOOTLOADER_SIZE / dev_desc->blksz;
-	ptable[PTN_BOOTLOADER_INDEX].partition_id = boot_partition;
+	/* Bootloader_nor */
+	strcpy(ptable[PTN_BOOTLOADER_NOR_INDEX].name, "bootloader_nor");
+	ptable[PTN_BOOTLOADER_NOR_INDEX].start = ANDROID_BOOTLOADER_NOR_OFFSET;
+	ptable[PTN_BOOTLOADER_NOR_INDEX].length = ANDROID_BOOTLOADER_NOR_SIZE;
+	ptable[PTN_BOOTLOADER_NOR_INDEX].partition_id = boot_partition;
+	/* Kernel_nor */
+	strcpy(ptable[PTN_KERNEL_NOR_INDEX].name, "kernel_nor");
+	ptable[PTN_KERNEL_NOR_INDEX].start = ANDROID_KERNEL_NOR_OFFSET;
+	ptable[PTN_KERNEL_NOR_INDEX].length = ANDROID_KERNEL_NOR_SIZE;
+	ptable[PTN_KERNEL_NOR_INDEX].partition_id = user_partition;
+	/* Recovery_nor */
+	strcpy(ptable[PTN_RECOVERY_NOR_INDEX].name, "recovery_nor");
+	ptable[PTN_RECOVERY_NOR_INDEX].start = ANDROID_RECOVERY_NOR_OFFSET;
+	ptable[PTN_RECOVERY_NOR_INDEX].length = ANDROID_RECOVERY_NOR_SIZE;
+	ptable[PTN_RECOVERY_NOR_INDEX].partition_id = user_partition;
+	/* Burn_nor */
+	strcpy(ptable[PTN_BURN_NOR_INDEX].name, "burn_nor");
+	ptable[PTN_BURN_NOR_INDEX].start = ANDROID_BURN_NOR_OFFSET;
+	ptable[PTN_BURN_NOR_INDEX].length = ANDROID_BURN_NOR_SIZE;
+	ptable[PTN_BURN_NOR_INDEX].partition_id = user_partition;
 
-#ifdef CONFIG_BRILLO_SUPPORT
-	_fastboot_parts_add_ptable_entry(PTN_KERNEL_INDEX,
-					 CONFIG_ANDROID_BOOT_PARTITION_MMC,
-					 user_partition,
-					 FASTBOOT_PARTITION_BOOT_A,
-					 dev_desc, ptable);
+	/* Boot */
+	strcpy(ptable[PTN_BOOT_INDEX].name, FASTBOOT_PARTITION_BOOT_A);
+	ptable[PTN_BOOT_INDEX].start =
+				ANDROID_BOOT_OFFSET / dev_desc->blksz;
+	ptable[PTN_BOOT_INDEX].length =
+				 ANDROID_BOOT_SIZE / dev_desc->blksz;
+	ptable[PTN_BOOT_INDEX].partition_id = user_partition;
 
-	_fastboot_parts_add_ptable_entry(PTN_RECOVERY_INDEX,
-					 CONFIG_ANDROID_RECOVERY_PARTITION_MMC,
+	_fastboot_parts_add_ptable_entry(PTN_SDCARD_INDEX,
+					 CONFIG_ANDROID_SDCARD_PARTITION_MMC,
 					 user_partition,
-					 FASTBOOT_PARTITION_RECOVERY,
+					 FASTBOOT_PARTITION_SDCARD,
 					 dev_desc, ptable);
 
 	_fastboot_parts_add_ptable_entry(PTN_SYSTEM_INDEX,
@@ -1237,17 +1433,47 @@ static int _fastboot_parts_load_from_ptable(void)
 					 FASTBOOT_PARTITION_SYSTEM_A,
 					 dev_desc, ptable);
 
+	_fastboot_parts_add_ptable_entry(PTN_RECOVERY_INDEX,
+					 CONFIG_ANDROID_RECOVERY_PARTITION_MMC,
+					 user_partition,
+					 FASTBOOT_PARTITION_RECOVERY,
+					 dev_desc, ptable);
+
 	_fastboot_parts_add_ptable_entry(PTN_DATA_INDEX,
 					 CONFIG_ANDROID_DATA_PARTITION_MMC,
 					 user_partition,
 					 FASTBOOT_PARTITION_DATA,
 					 dev_desc, ptable);
 
-	 _fastboot_parts_add_ptable_entry(PTN_KERNEL_B_INDEX,
+	_fastboot_parts_add_ptable_entry(PTN_CACHE_INDEX,
+					 CONFIG_ANDROID_CACHE_PARTITION_MMC,
+					 user_partition,
+					 FASTBOOT_PARTITION_CACHE,
+					 dev_desc, ptable);
+
+	_fastboot_parts_add_ptable_entry(PTN_PRIVATE_INDEX,
+					 CONFIG_ANDROID_PRIVATE_PARTITION_MMC,
+					 user_partition,
+					 FASTBOOT_PARTITION_PRIVATE,
+					 dev_desc, ptable);
+
+	_fastboot_parts_add_ptable_entry(PTN_RESC_INDEX,
+					 CONFIG_ANDROID_RESC_PARTITION_MMC,
+					 user_partition,
+					 FASTBOOT_PARTITION_RESC,
+					 dev_desc, ptable);
+
+	 _fastboot_parts_add_ptable_entry(PTN_BOOT_B_INDEX,
 					  CONFIG_ANDROID_BOOT_B_PARTITION_MMC,
 					  user_partition,
 					  FASTBOOT_PARTITION_BOOT_B,
 					  dev_desc, ptable);
+
+	_fastboot_parts_add_ptable_entry(PTN_RECOVERY_B_INDEX,
+					 CONFIG_ANDROID_RECOVERY_B_PARTITION_MMC,
+					 user_partition,
+					 FASTBOOT_PARTITION_RECOVERY_B,
+					 dev_desc, ptable);
 
 	_fastboot_parts_add_ptable_entry(PTN_SYSTEM_B_INDEX,
 					 CONFIG_ANDROID_SYSTEM_B_PARTITION_MMC,
@@ -1255,37 +1481,15 @@ static int _fastboot_parts_load_from_ptable(void)
 					 FASTBOOT_PARTITION_SYSTEM_B,
 					 dev_desc, ptable);
 
-	_fastboot_parts_add_ptable_entry(PTN_MISC_INDEX,
-					 CONFIG_ANDROID_MISC_PARTITION_MMC,
+	_fastboot_parts_add_ptable_entry(PTN_MAP_INDEX,
+					 CONFIG_ANDROID_MAP_PARTITION_MMC,
 					 user_partition,
-					 FASTBOOT_PARTITION_MISC,
-					 dev_desc, ptable);
-#else
-	_fastboot_parts_add_ptable_entry(PTN_KERNEL_INDEX,
-					 CONFIG_ANDROID_BOOT_PARTITION_MMC,
-					 user_partition,
-					 FASTBOOT_PARTITION_BOOT,
+					 FASTBOOT_PARTITION_MAP,
 					 dev_desc, ptable);
 
-	_fastboot_parts_add_ptable_entry(PTN_RECOVERY_INDEX,
-					 CONFIG_ANDROID_RECOVERY_PARTITION_MMC,
-					 user_partition,
-					 FASTBOOT_PARTITION_RECOVERY,
-					 dev_desc, ptable);
-
-	_fastboot_parts_add_ptable_entry(PTN_SYSTEM_INDEX,
-					 CONFIG_ANDROID_SYSTEM_PARTITION_MMC,
-					 user_partition,
-					 FASTBOOT_PARTITION_SYSTEM,
-					 dev_desc, ptable);
-
-	_fastboot_parts_add_ptable_entry(PTN_DATA_INDEX,
-					 CONFIG_ANDROID_DATA_PARTITION_MMC,
-					 user_partition,
-					 FASTBOOT_PARTITION_DATA,
-					 dev_desc, ptable);
-#endif
-
+// *
+// * Redefine partition
+// minli-port-181011
 	for (i = 0; i < PTN_NUM; i++)
 		fastboot_flash_add_ptn(&ptable[i]);
 
@@ -1486,6 +1690,28 @@ void fastboot_flash_dump_ptn(void)
 	}
 }
 
+// minli-port-181011
+/*
+ * Check if Partition is located in Nor
+ * input is Operatin Partition Name
+ * Output is Operatin Partition No
+ */
+unsigned int fastboot_ptn_Location_nor(char *name)
+{
+	if (!strcmp(name, "mbr")) {
+		return 1;
+	} else if (!strcmp(name,"bootloader_nor")) {
+		return 1;
+	} else if (!strcmp(name,"kernel_nor")) {
+		return 1;
+	} else if (!strcmp(name,"recovery_nor")) {
+		return 1;
+	} else if (!strcmp(name,"burn_nor")) {
+		return 1;
+	} else {
+		return 0;
+	}
+}
 
 struct fastboot_ptentry *fastboot_flash_find_ptn(const char *name)
 {
@@ -2144,8 +2370,16 @@ static void cb_getvar(struct usb_ep *ep, struct usb_request *req)
 		s = getenv("serial#");
 		if (s)
 			strncat(response, s, chars_left);
-		else
-			strcpy(response, "FAILValue not set");
+// minli-port-181011
+//		else
+//			strcpy(response, "FAILValue not set");
+		else {
+			s = g_dnl_get_serialnumber();
+			if(s) 
+				strncat(response, s, chars_left);
+			else
+				strcpy(response, "FAILValue not set");
+		}
 	} else if (!strcmp_l1("partition-type", cmd)) {
 		strcpy(response, "FAILVariable not implemented");
 	} else {

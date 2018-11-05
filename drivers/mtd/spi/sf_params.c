@@ -90,6 +90,20 @@ const struct spi_flash_params spi_flash_params_table[] = {
 	{"N25Q512A",	   0x20bb20, 0x0,       64 * 1024,  1024, RD_FULL, WR_QPP | E_FSR | SECT_4K},
 	{"N25Q1024",	   0x20ba21, 0x0,       64 * 1024,  2048, RD_FULL, WR_QPP | E_FSR | SECT_4K},
 	{"N25Q1024A",	   0x20bb21, 0x0,       64 * 1024,  2048, RD_FULL, WR_QPP | E_FSR | SECT_4K},
+
+/**
+// minli-port-181011
+ * struct spi_flash_params - SPI/QSPI flash device params structure
+ * @name:		Device name ([MANUFLETTER][DEVTYPE][DENSITY][EXTRAINFO])
+ * @jedec:		Device jedec ID (0x[1byte_manuf_id][2byte_dev_id])
+ * @ext_jedec:		Device ext_jedec ID
+ * @sector_size:	Sector size of this device
+ * @nr_sectors:		No.of sectors on this device
+ * @e_rd_cmd:		Enum list for read commands
+ * @flags:		Important param, for flash specific behaviour
+ */
+	{"IS25LP064A",	   0x9D6017, 0x0,       64 * 1024,   128,  RD_FULL,	   WR_QPP | SECT_4K},
+
 #endif
 #ifdef CONFIG_SPI_FLASH_SST		/* SST */
 	{"SST25VF040B",	   0xbf258d, 0x0,	64 * 1024,     8, RD_NORM,          SECT_4K | SST_WR},

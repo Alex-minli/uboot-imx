@@ -33,6 +33,9 @@
 #define FASTBOOT_MMC_USER_PARTITION_ID  0
 #define FASTBOOT_MMC_NONE_PARTITION_ID -1
 
+/*
+ * minli-port-181011
+ * Rename partition
 #ifdef CONFIG_BRILLO_SUPPORT
 #define FASTBOOT_PARTITION_BOOT_A "boot_a"
 #define FASTBOOT_PARTITION_RECOVERY "recovery"
@@ -49,6 +52,19 @@
 #define FASTBOOT_PARTITION_BOOTLOADER "bootloader"
 #define FASTBOOT_PARTITION_DATA "data"
 #endif
+ */
+#define FASTBOOT_PARTITION_BOOT_A "boot"
+#define FASTBOOT_PARTITION_SDCARD "sdcard"
+#define FASTBOOT_PARTITION_SYSTEM_A "system"
+#define FASTBOOT_PARTITION_RECOVERY "recovery"
+#define FASTBOOT_PARTITION_DATA "data"
+#define FASTBOOT_PARTITION_CACHE "cache"
+#define FASTBOOT_PARTITION_PRIVATE "private"
+#define FASTBOOT_PARTITION_RESC "resc"
+#define FASTBOOT_PARTITION_BOOT_B "bootb"
+#define FASTBOOT_PARTITION_RECOVERY_B "recoveryb"
+#define FASTBOOT_PARTITION_SYSTEM_B "systemb"
+#define FASTBOOT_PARTITION_MAP "map"
 
 enum {
     DEV_SATA,
@@ -155,6 +171,11 @@ struct fastboot_ptentry *fastboot_flash_get_ptn(unsigned n);
 unsigned int fastboot_flash_get_ptn_count(void);
 void fastboot_flash_dump_ptn(void);
 
+/*
+ * minli-port-181011
+ * Is partitions located in Nor flash
+ */
+unsigned int fastboot_ptn_Location_nor(char *name);
 
 /* Check the board special boot mode reboot to fastboot mode. */
 int fastboot_check_and_clean_flag(void);

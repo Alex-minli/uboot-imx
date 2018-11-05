@@ -37,6 +37,13 @@ int g_dnl_bind_fixup(struct usb_device_descriptor *, const char *);
 int g_dnl_board_usb_cable_connected(void);
 int g_dnl_register(const char *s);
 void g_dnl_unregister(void);
+/* 
+ * minli-port-181011
+ * Add define
+ *
+ */
+char *g_dnl_get_serialnumber(void);
+
 void g_dnl_set_serialnumber(char *);
 
 bool g_dnl_detach(void);

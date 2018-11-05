@@ -504,5 +504,7 @@ boot_os_fn *bootm_os_get_boot_func(int os)
 		relocated = true;
 	}
 #endif
+// minli-port-181011
+	debug("%s: boot_os[%d] = 0x%p\n", __func__, os, boot_os[os]);
 	return boot_os[os];
 }

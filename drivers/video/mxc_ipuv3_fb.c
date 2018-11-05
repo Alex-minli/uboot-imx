@@ -39,6 +39,9 @@ static uint32_t gpixfmt;
 static void fb_videomode_to_var(struct fb_var_screeninfo *var,
 			 const struct fb_videomode *mode)
 {
+// minli-debug_video
+	debug("%s: Set Screen info accroding to video mode\n", __func__);
+
 	var->xres = mode->xres;
 	var->yres = mode->yres;
 	var->xres_virtual = mode->xres;
@@ -93,17 +96,29 @@ static uint32_t bpp_to_pixfmt(struct fb_info *fbi)
 {
 	uint32_t pixfmt = 0;
 
-	debug("bpp_to_pixfmt: %d\n", fbi->var.bits_per_pixel);
-
 	if (fbi->var.nonstd)
 		return fbi->var.nonstd;
 
 	switch (fbi->var.bits_per_pixel) {
 	case 24:
+// minli-debug_video
+#ifndef CONFIG_LOGO_IN_EMMC
+// Already change to RGB format when read data
+		pixfmt = IPU_PIX_FMT_RGB24;
+#else
+// BMP data format is BRG
 		pixfmt = IPU_PIX_FMT_BGR24;
+#endif
 		break;
 	case 32:
+// minli-debug_video
+#ifndef CONFIG_LOGO_IN_EMMC
+// Already change to RGB format when read data
+		pixfmt = IPU_PIX_FMT_RGB32;
+#else
+// BMP data format is BRG
 		pixfmt = IPU_PIX_FMT_BGR32;
+#endif
 		break;
 	case 16:
 		pixfmt = IPU_PIX_FMT_RGB565;
@@ -119,6 +134,9 @@ static uint32_t bpp_to_pixfmt(struct fb_info *fbi)
  */
 static int mxcfb_set_fix(struct fb_info *info)
 {
+// minli-debug_video
+	debug("%s:\n", __func__);
+
 	struct fb_fix_screeninfo *fix = &info->fix;
 	struct fb_var_screeninfo *var = &info->var;
 
@@ -135,13 +153,15 @@ static int mxcfb_set_fix(struct fb_info *info)
 
 static int setup_disp_channel1(struct fb_info *fbi)
 {
+// minli-debug_video
+	debug("%s:\n", __func__);
+
 	ipu_channel_params_t params;
 	struct mxcfb_info *mxc_fbi = (struct mxcfb_info *)fbi->par;
 
 	memset(&params, 0, sizeof(params));
 	params.mem_dp_bg_sync.di = mxc_fbi->ipu_di;
 
-	debug("%s called\n", __func__);
 	/*
 	 * Assuming interlaced means yuv output, below setting also
 	 * valid for mem_dc_sync. FG should have the same vmode as BG.
@@ -151,17 +171,33 @@ static int setup_disp_channel1(struct fb_info *fbi)
 		params.mem_dp_bg_sync.out_pixel_fmt =
 			IPU_PIX_FMT_YUV444;
 	} else {
+// minli-debug_video
+		debug("\t mxc_fbi->ipu_di_pix_fmt = %c%c%c%c\n", 
+                            (char)mxc_fbi->ipu_di_pix_fmt, (char)(mxc_fbi->ipu_di_pix_fmt >> 8), (char)(mxc_fbi->ipu_di_pix_fmt >> 16), (char)(mxc_fbi->ipu_di_pix_fmt >> 24));
+
 		if (mxc_fbi->ipu_di_pix_fmt) {
 			params.mem_dp_bg_sync.out_pixel_fmt =
 				mxc_fbi->ipu_di_pix_fmt;
 		} else {
+// minli-debug_video
+//			params.mem_dp_bg_sync.out_pixel_fmt =
+//				IPU_PIX_FMT_RGB666;
+			debug("\t mxc_fbi->ipu_di_pix_fmt not set, default to IPU_PIX_FMT_RGB24\n");
+
 			params.mem_dp_bg_sync.out_pixel_fmt =
-				IPU_PIX_FMT_RGB666;
+				IPU_PIX_FMT_RGB24;
 		}
 	}
 	params.mem_dp_bg_sync.in_pixel_fmt = bpp_to_pixfmt(fbi);
 	if (mxc_fbi->alpha_chan_en)
 		params.mem_dp_bg_sync.alpha_chan_en = 1;
+// minli-debug_video
+	debug("\t params.mem_dp_bg_sync.in_pixel_fmt = %c%c%c%c\n", 
+                            (char)params.mem_dp_bg_sync.in_pixel_fmt, (char)(params.mem_dp_bg_sync.in_pixel_fmt >> 8), 
+                            (char)(params.mem_dp_bg_sync.in_pixel_fmt >> 16), (char)(params.mem_dp_bg_sync.in_pixel_fmt >> 24));
+	debug("\t params.mem_dp_bg_sync.out_pixel_fmt = %c%c%c%c\n",
+                            (char)params.mem_dp_bg_sync.out_pixel_fmt, (char)(params.mem_dp_bg_sync.out_pixel_fmt >> 8), 
+                            (char)(params.mem_dp_bg_sync.out_pixel_fmt >> 16), (char)(params.mem_dp_bg_sync.out_pixel_fmt >> 24));
 
 	ipu_init_channel(mxc_fbi->ipu_ch, &params);
 
@@ -216,12 +252,18 @@ static int mxcfb_set_par(struct fb_info *fbi)
 	struct mxcfb_info *mxc_fbi = (struct mxcfb_info *)fbi->par;
 	uint32_t out_pixel_fmt;
 
+// minli-debug_video
+	debug("%s: channel = %d\n", __func__, IPU_CHAN_ID(mxc_fbi->ipu_ch));
+
 	ipu_disable_channel(mxc_fbi->ipu_ch);
 	ipu_uninit_channel(mxc_fbi->ipu_ch);
 	mxcfb_set_fix(fbi);
 
 	mem_len = fbi->var.yres_virtual * fbi->fix.line_length;
 	if (!fbi->fix.smem_start || (mem_len > fbi->fix.smem_len)) {
+// minli-debug_video
+		debug("\t fb not allocated or need enlarge length.\n");
+
 		if (fbi->fix.smem_start)
 			mxcfb_unmap_video_memory(fbi);
 
@@ -239,7 +281,9 @@ static int mxcfb_set_par(struct fb_info *fbi)
 		if (mxc_fbi->ipu_di_pix_fmt)
 			out_pixel_fmt = mxc_fbi->ipu_di_pix_fmt;
 		else
-			out_pixel_fmt = IPU_PIX_FMT_RGB666;
+// minli-debug_video
+//			out_pixel_fmt = IPU_PIX_FMT_RGB666;
+			out_pixel_fmt = IPU_PIX_FMT_RGB24;
 	}
 	if (fbi->var.vmode & FB_VMODE_ODD_FLD_FIRST) /* PAL */
 		sig_cfg.odd_field_first = 1;
@@ -279,8 +323,13 @@ static int mxcfb_set_par(struct fb_info *fbi)
 	if (retval)
 		return retval;
 
-	if (mxc_fbi->blank == FB_BLANK_UNBLANK)
+// minli-debug_video
+//	if (mxc_fbi->blank == FB_BLANK_UNBLANK)
+//		ipu_enable_channel(mxc_fbi->ipu_ch);
+	if (mxc_fbi->blank == FB_BLANK_UNBLANK) {
+		debug("\t mxc_fbi->ipu_ch = %d\n\n", IPU_CHAN_ID(mxc_fbi->ipu_ch));
 		ipu_enable_channel(mxc_fbi->ipu_ch);
+	}
 
 	return retval;
 }
@@ -294,6 +343,9 @@ static int mxcfb_set_par(struct fb_info *fbi)
  */
 static int mxcfb_check_var(struct fb_var_screeninfo *var, struct fb_info *info)
 {
+// minli-debug_video
+	debug("%s: ", __func__);
+
 	u32 vtotal;
 	u32 htotal;
 
@@ -305,6 +357,9 @@ static int mxcfb_check_var(struct fb_var_screeninfo *var, struct fb_info *info)
 	if ((var->bits_per_pixel != 32) && (var->bits_per_pixel != 24) &&
 	    (var->bits_per_pixel != 16) && (var->bits_per_pixel != 8))
 		var->bits_per_pixel = default_bpp;
+
+// minli-debug_video
+	debug("bits_per_pixel = %d\n", var->bits_per_pixel);
 
 	switch (var->bits_per_pixel) {
 	case 8:
@@ -397,6 +452,9 @@ static int mxcfb_check_var(struct fb_var_screeninfo *var, struct fb_info *info)
 
 static int mxcfb_map_video_memory(struct fb_info *fbi)
 {
+// minli-debug_video
+	debug("%s: Allocate framebuffer memory. And Inialize.\n", __func__);
+
 	if (fbi->fix.smem_len < fbi->var.yres_virtual * fbi->fix.line_length) {
 		fbi->fix.smem_len = fbi->var.yres_virtual *
 				    fbi->fix.line_length;
@@ -412,7 +470,9 @@ static int mxcfb_map_video_memory(struct fb_info *fbi)
 		return -EBUSY;
 	}
 
-	debug("allocated fb @ paddr=0x%08X, size=%d.\n",
+// minli-debug_video
+	debug("\t fbi->var.yres_virtual=%d, fbi->fix.line_length = %d\n", fbi->var.yres_virtual, fbi->fix.line_length);
+	debug("\t allocated fb @ paddr=0x%08X, size=%d.\n",
 		(uint32_t) fbi->fix.smem_start, fbi->fix.smem_len);
 
 	fbi->screen_size = fbi->fix.smem_len;
@@ -458,6 +518,10 @@ static struct fb_info *mxcfb_init_fbinfo(void)
 		size,
 		sizeof(struct mxcfb_info),
 		sizeof(struct fb_info));
+// minli-debug_video
+	debug("\t size \t = \t struct fb_info + \t PADDING + \t struct mxcfb_info\n");
+	debug("\t %d   \t = \t %d + \t %d + \t %d\n", size, sizeof(struct fb_info), PADDING, sizeof(struct mxcfb_info));
+
 	/*
 	 * Allocate sufficient memory for the fb structure
 	 */
@@ -494,6 +558,11 @@ static struct fb_info *mxcfb_init_fbinfo(void)
 static int mxcfb_probe(u32 interface_pix_fmt, uint8_t disp,
 			struct fb_videomode const *mode)
 {
+// minli-debug_video
+	debug("%s: Start ----------------\n", __func__);
+	debug("\t interface_pix_fmt = %c%c%c%c, disp = %d, struct fb_videomode at(0x%p)\n", \
+                  (char)gpixfmt, (char)(gpixfmt >> 8), (char)(gpixfmt >> 16), (char)(gpixfmt >> 24), disp, mode);
+
 	struct fb_info *fbi;
 	struct mxcfb_info *mxcfbi;
 	int ret = 0;
@@ -508,6 +577,8 @@ static int mxcfb_probe(u32 interface_pix_fmt, uint8_t disp,
 	}
 	mxcfbi = (struct mxcfb_info *)fbi->par;
 
+// minli-debug_video
+	debug("\t DP %s\n", g_dp_in_use ? "used." : "not used.");
 	if (!g_dp_in_use) {
 		mxcfbi->ipu_ch = MEM_BG_SYNC;
 		mxcfbi->blank = FB_BLANK_UNBLANK;
@@ -515,6 +586,10 @@ static int mxcfb_probe(u32 interface_pix_fmt, uint8_t disp,
 		mxcfbi->ipu_ch = MEM_DC_SYNC;
 		mxcfbi->blank = FB_BLANK_POWERDOWN;
 	}
+// minli-debug_video
+	debug("\t Select ch: %d\n", IPU_CHAN_ID(mxcfbi->ipu_ch));
+	debug("\t   -> VIDEO_IN_DMA ch: %d, GRAPH_IN_DMA ch: %d, ALPHA_IN_DMA ch: %d, OUT_DMA ch : %d\n", 
+                       IPU_CHAN_VIDEO_IN_DMA(mxcfbi->ipu_ch), IPU_CHAN_GRAPH_IN_DMA(mxcfbi->ipu_ch), IPU_CHAN_ALPHA_IN_DMA(mxcfbi->ipu_ch), IPU_CHAN_OUT_DMA(mxcfbi->ipu_ch));
 
 	mxcfbi->ipu_di = disp;
 
@@ -530,7 +605,9 @@ static int mxcfb_probe(u32 interface_pix_fmt, uint8_t disp,
 
 	mxcfbi->ipu_di_pix_fmt = interface_pix_fmt;
 	fb_videomode_to_var(&fbi->var, mode);
-	fbi->var.bits_per_pixel = 16;
+// minli-debug_video
+//	fbi->var.bits_per_pixel = 16;
+	fbi->var.bits_per_pixel = 24;
 	fbi->fix.line_length = fbi->var.xres * (fbi->var.bits_per_pixel / 8);
 	fbi->fix.smem_len = fbi->var.yres_virtual * fbi->fix.line_length;
 
@@ -542,6 +619,9 @@ static int mxcfb_probe(u32 interface_pix_fmt, uint8_t disp,
 	mxcfb_set_fix(fbi);
 
 	/* allocate fb first */
+// minli-debug_video
+	debug("\t allocate fb first\n");
+
 	if (mxcfb_map_video_memory(fbi) < 0)
 		return -ENOMEM;
 
@@ -555,11 +635,16 @@ static int mxcfb_probe(u32 interface_pix_fmt, uint8_t disp,
 	panel.frameAdrs = (u32)fbi->screen_base;
 	panel.memSize = fbi->screen_size;
 
-	panel.gdfBytesPP = 2;
-	panel.gdfIndex = GDF_16BIT_565RGB;
+// minli-debug_video
+//	panel.gdfBytesPP = 2;
+//	panel.gdfIndex = GDF_16BIT_565RGB;
+	panel.gdfBytesPP = 3;
+	panel.gdfIndex = GDF_24BIT_888RGB;
 
 	ipu_dump_registers();
 
+// minli-debug_video
+	debug("%s: End ------------------\n", __func__);
 	return 0;
 
 err0:
@@ -568,6 +653,10 @@ err0:
 
 void ipuv3_fb_shutdown(void)
 {
+// minli-debug_video
+// Disable process,because will halt when bootup.need fix it.
+	return;
+
 	int i;
 	struct ipu_stat *stat = (struct ipu_stat *)IPU_STAT;
 
@@ -587,6 +676,8 @@ void ipuv3_fb_shutdown(void)
 
 void *video_hw_init(void)
 {
+// minli-debug_video
+	debug("%s: Start......\n", __func__);
 	int ret;
 
 	ret = ipu_probe();
@@ -596,6 +687,8 @@ void *video_hw_init(void)
 	ret = mxcfb_probe(gpixfmt, gdisp, gmode);
 	debug("Framebuffer at 0x%x\n", (unsigned int)panel.frameAdrs);
 
+// minli-debug_video
+	debug("%s: End......\n", __func__);
 	return (void *)&panel;
 }
 
@@ -615,6 +708,10 @@ int ipuv3_fb_init(struct fb_videomode const *mode,
 	gmode = mode;
 	gdisp = disp;
 	gpixfmt = pixfmt;
+
+// minli-debug-video
+	debug("%s: initialize paraments, gmode = 0x%p, gdisp = %d, gpixfmt = %c%c%c%c\n", __func__, 
+                                         gmode, gdisp, (char)gpixfmt, (char)(gpixfmt >> 8), (char)(gpixfmt >> 16), (char)(gpixfmt >> 24));
 
 	return 0;
 }
