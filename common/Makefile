@@ -40,6 +40,10 @@ obj-y += cmd_version.o
 # boot paramemts command
 obj-$(CONFIG_CMD_BPARAM) += cmd_bparam.o
 
+# // minli-port-181105
+# SN modify command
+obj-$(CONFIG_CMD_SNINFO) += cmd_sninfo.o
+
 # environment
 obj-y += env_attr.o
 obj-y += env_callback.o

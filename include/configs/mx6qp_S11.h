@@ -158,6 +158,12 @@
 #define CONFIG_CMD_BPARAM
 
 /* 
+ * minli-port-181105
+ * SN modify command
+ */
+#define CONFIG_CMD_SNINFO
+
+/* 
  * minli-port-Serial
  * Add Uart(MCU) port define
  *
