@@ -131,9 +131,10 @@ static int do_mmc_bparam_set(int argc, char * const argv[])
 	const char *cmd_argv;
 
 	cmd_argv = argv[2];
-	bparam_info = get_bparam_info();
 
 	if (strcmp(cmd_argv, "systema") == 0) {
+		bparam_info = get_bparam_info();
+
 		memset(bparam_info->Boot_type, 0 , BOOT_TYPE_SIZE);
 		sprintf(bparam_info->Boot_type, "SYSTEMA");
 
@@ -147,6 +148,8 @@ static int do_mmc_bparam_set(int argc, char * const argv[])
 		return(set_bparam_info(bparam_info));
 	}
 	else if (strcmp(cmd_argv, "systemb") == 0) {
+		bparam_info = get_bparam_info();
+
 		memset(bparam_info->Boot_type, 0 , BOOT_TYPE_SIZE);
 		sprintf(bparam_info->Boot_type, "SYSTEMB");
 		
@@ -160,6 +163,8 @@ static int do_mmc_bparam_set(int argc, char * const argv[])
 		return(set_bparam_info(bparam_info));
 	}
 	else if (strcmp(cmd_argv, "recovery") == 0) {
+		bparam_info = get_bparam_info();
+
 		memset(bparam_info->Boot_type, 0 , BOOT_TYPE_SIZE);
 		sprintf(bparam_info->Boot_type, "SYSTEMA");
 
@@ -176,6 +181,8 @@ static int do_mmc_bparam_set(int argc, char * const argv[])
 		return(set_bparam_info(bparam_info));
 	}
 	else if (strcmp(cmd_argv, "recoveryb") == 0) {
+		bparam_info = get_bparam_info();
+
 		memset(bparam_info->Boot_type, 0 , BOOT_TYPE_SIZE);
 		sprintf(bparam_info->Boot_type, "SYSTEMB");
 
@@ -192,6 +199,8 @@ static int do_mmc_bparam_set(int argc, char * const argv[])
 		return(set_bparam_info(bparam_info));
 	}
 	else if (strcmp(cmd_argv, "wipe_data") == 0) {
+		bparam_info = get_bparam_info();
+
 		memset(bparam_info->Boot_cmd, 0 , BOOT_CMD_SIZE);
 		sprintf(bparam_info->Boot_cmd, "RECOVERY--wipe_data");
 
